@@ -164,6 +164,9 @@ def create_app() -> Flask:
         "/api/generate/single", "generate_single", generate_single, methods=["POST"]
     )
     app.add_url_rule(
+        "/api/generate/dates", "generate_dates", generate_dates, methods=["POST"]
+    )
+    app.add_url_rule(
         "/api/download/<job_id>", "download_files", download_files, methods=["GET"]
     )
 
@@ -381,6 +384,61 @@ def generate_single():
             "status": "complete",
             "total_files": 1,
             "files": [_result_to_dict(result)],
+            "download_url": f"/api/download/{job_id}",
+        })
+    except Exception as e:
+        logger.error("生成失败: %s", e, exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+def generate_dates():
+    """指定日期生成"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "无效的请求数据"}), 400
+
+    try:
+        config = _parse_generate_request(data)
+        dates_list = data.get("dates", [])
+        if not dates_list:
+            return jsonify({"error": "请至少选择一个日期"}), 400
+
+        min_km = float(data.get("min_km", 2.0))
+        max_km = float(data.get("max_km", 5.0))
+
+        from src.generation_engine import GenerationEngine
+
+        engine = GenerationEngine(_config_manager)
+
+        # 为每个选定日期生成 DailyPlan
+        import random
+        from src.core.models import DailyPlan
+
+        plans = []
+        for date_str in dates_list:
+            date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+            distance = round(random.uniform(min_km, max_km), 2)
+            plans.append(DailyPlan(date=date, distance_km=distance))
+
+        results = engine._generate_from_plans(plans, config)
+
+        job_id = (
+            f"gen_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            f"_{uuid.uuid4().hex[:6]}"
+        )
+
+        # 清理过期 ZIP，然后立即创建 ZIP
+        output_dir = os.path.abspath(config.output_dir)
+        _cleanup_old_zips(output_dir)
+        zip_path = _create_zip_for_job(job_id, results)
+
+        _generation_jobs[job_id] = {"results": results, "zip_path": zip_path}
+
+        return jsonify({
+            "job_id": job_id,
+            "status": "complete",
+            "total_files": len(results),
+            "files": [_result_to_dict(r) for r in results],
             "download_url": f"/api/download/{job_id}",
         })
     except Exception as e:

@@ -2,10 +2,15 @@
 
 let currentJobId = null;
 
+// 日历状态
+let calendarYear, calendarMonth;
+let selectedDates = new Set();
+
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', async () => {
     initDates();
     initTabs();
+    initCalendar();
     await loadTracks();
     await loadTemplates();
     initForms();
@@ -44,6 +49,175 @@ function initTabs() {
             });
         });
     });
+}
+
+// 日历 - 常量
+const CAL_MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const PAD2 = n => String(n).padStart(2, '0');
+const dateKey = (y, m, d) => `${y}-${PAD2(m + 1)}-${PAD2(d)}`;
+const today0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+
+let ypBase = 0; // 年份面板起始年
+
+// 初始化日历
+function initCalendar() {
+    const now = new Date();
+    calendarYear = now.getFullYear();
+    calendarMonth = now.getMonth();
+
+    // 月份切换
+    document.getElementById('cal-prev').addEventListener('click', () => shiftMonth(-1));
+    document.getElementById('cal-next').addEventListener('click', () => shiftMonth(1));
+
+    // 日期网格 - 事件委托
+    document.getElementById('calendar-grid').addEventListener('click', e => {
+        const el = e.target.closest('.calendar-day:not(.empty)');
+        if (!el) return;
+        const date = el.dataset.date;
+        if (!date) return;
+        if (selectedDates.has(date)) {
+            selectedDates.delete(date);
+            el.classList.remove('selected');
+        } else {
+            selectedDates.add(date);
+            el.classList.add('selected');
+        }
+        updateSelectedDatesDisplay();
+    });
+
+    // 年份点击
+    document.getElementById('cal-year').addEventListener('click', () => togglePicker('year'));
+    // 月份点击
+    document.getElementById('cal-month').addEventListener('click', () => togglePicker('month'));
+
+    // 年份面板导航
+    document.getElementById('yp-prev').addEventListener('click', () => { ypBase -= 12; renderYearPicker(); });
+    document.getElementById('yp-next').addEventListener('click', () => { ypBase += 12; renderYearPicker(); });
+
+    // 年份面板选择 - 事件委托
+    document.getElementById('yp-grid').addEventListener('click', e => {
+        const el = e.target.closest('.pick-item');
+        if (!el) return;
+        calendarYear = parseInt(el.dataset.val);
+        closePickers();
+        renderCalendar();
+    });
+
+    // 月份面板选择 - 事件委托
+    document.getElementById('month-picker').addEventListener('click', e => {
+        const el = e.target.closest('.pick-item');
+        if (!el) return;
+        calendarMonth = parseInt(el.dataset.val);
+        closePickers();
+        renderCalendar();
+    });
+
+    renderCalendar();
+}
+
+function shiftMonth(delta) {
+    calendarMonth += delta;
+    if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+    else if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+    renderCalendar();
+}
+
+// 切换选择面板
+function togglePicker(type) {
+    const yearPanel = document.getElementById('year-picker');
+    const monthPanel = document.getElementById('month-picker');
+    const target = type === 'year' ? yearPanel : monthPanel;
+    const other = type === 'year' ? monthPanel : yearPanel;
+
+    if (target.style.display !== 'none') {
+        target.style.display = 'none';
+        return;
+    }
+    other.style.display = 'none';
+
+    if (type === 'year') {
+        ypBase = Math.floor(calendarYear / 12) * 12;
+        renderYearPicker();
+    } else {
+        renderMonthPicker();
+    }
+    target.style.display = 'block';
+}
+
+function closePickers() {
+    document.getElementById('year-picker').style.display = 'none';
+    document.getElementById('month-picker').style.display = 'none';
+}
+
+// 渲染年份选择面板
+function renderYearPicker() {
+    document.getElementById('yp-range').textContent = `${ypBase} - ${ypBase + 11}`;
+    const grid = document.getElementById('yp-grid');
+    let html = '';
+    for (let i = 0; i < 12; i++) {
+        const y = ypBase + i;
+        const cls = y === calendarYear ? 'pick-item active' : 'pick-item';
+        html += `<button type="button" class="${cls}" data-val="${y}">${y}</button>`;
+    }
+    grid.innerHTML = html;
+}
+
+// 渲染月份选择面板
+function renderMonthPicker() {
+    const panel = document.getElementById('month-picker');
+    let html = '<div class="cal-picker-grid">';
+    for (let i = 0; i < 12; i++) {
+        const cls = i === calendarMonth ? 'pick-item active' : 'pick-item';
+        html += `<button type="button" class="${cls}" data-val="${i}">${CAL_MONTH_NAMES[i]}</button>`;
+    }
+    html += '</div>';
+    panel.innerHTML = html;
+}
+
+// 渲染日历
+function renderCalendar() {
+    // 更新标题
+    document.getElementById('cal-year').textContent = `${calendarYear}年`;
+    document.getElementById('cal-month').textContent = CAL_MONTH_NAMES[calendarMonth];
+
+    const grid = document.getElementById('calendar-grid');
+    const today = today0();
+
+    // 周一起始
+    const firstDay = new Date(calendarYear, calendarMonth, 1);
+    let startWeekday = firstDay.getDay() - 1;
+    if (startWeekday < 0) startWeekday = 6;
+
+    const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+
+    // 预算today key避免重复创建
+    const todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+
+    let html = '';
+    for (let i = 0; i < startWeekday; i++) {
+        html += '<span class="calendar-day empty"></span>';
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        const key = dateKey(calendarYear, calendarMonth, d);
+        const isToday = key === todayKey;
+        const sel = selectedDates.has(key);
+        let cls = 'calendar-day';
+        if (isToday) cls += ' today';
+        if (sel) cls += ' selected';
+        html += `<span class="${cls}" data-date="${key}">${d}</span>`;
+    }
+    grid.innerHTML = html;
+}
+
+// 更新已选日期显示
+function updateSelectedDatesDisplay() {
+    const el = document.getElementById('selected-dates-text');
+    if (selectedDates.size === 0) {
+        el.textContent = '无';
+    } else {
+        const sorted = Array.from(selectedDates).sort();
+        el.textContent = sorted.join('、') + `（共${sorted.length}天）`;
+    }
 }
 
 // 加载轨迹列表
@@ -196,6 +370,7 @@ function applyTemplateToForms(template) {
     const hasDaily = template.daily_config && Object.keys(template.daily_config).length > 0;
     const hasTotal = template.total_config && Object.keys(template.total_config).length > 0;
     const hasSingle = template.single_config && Object.keys(template.single_config).length > 0;
+    const hasDates = template.dates_config && Object.keys(template.dates_config).length > 0;
 
     if (hasDaily) {
         switchToMode('daily');
@@ -203,6 +378,8 @@ function applyTemplateToForms(template) {
         switchToMode('total');
     } else if (hasSingle) {
         switchToMode('single');
+    } else if (hasDates) {
+        switchToMode('dates');
     }
 
     const activeMode = document.querySelector('.mode-content.active').id;
@@ -215,6 +392,8 @@ function applyTemplateToForms(template) {
         config = template.total_config;
     } else if (activeMode === 'single-mode' && template.single_config) {
         config = template.single_config;
+    } else if (activeMode === 'dates-mode' && template.dates_config) {
+        config = template.dates_config;
     } else {
         // 兼容旧格式（无模式分离）
         config = template.generation_config || {};
@@ -319,6 +498,28 @@ function applyTemplateToForms(template) {
             document.getElementById('single-pace').value = config.pace;
         }
     }
+
+    // 指定日期模式字段
+    if (activeMode === 'dates-mode') {
+        if (config.min_km !== undefined) {
+            document.getElementById('dates-min-km').value = config.min_km;
+        }
+        if (config.max_km !== undefined) {
+            document.getElementById('dates-max-km').value = config.max_km;
+        }
+        if (config.min_pace !== undefined) {
+            document.getElementById('dates-min-pace').value = config.min_pace;
+        }
+        if (config.max_pace !== undefined) {
+            document.getElementById('dates-max-pace').value = config.max_pace;
+        }
+        if (config.start_time_min !== undefined) {
+            document.getElementById('dates-start-time-min').value = config.start_time_min;
+        }
+        if (config.start_time_max !== undefined) {
+            document.getElementById('dates-start-time-max').value = config.start_time_max;
+        }
+    }
 }
 
 // 重置表单为默认值
@@ -334,6 +535,12 @@ function resetFormsToDefaults() {
     document.getElementById('total-max-pace').value = 8.0;
     document.getElementById('total-start-time-min').value = '06:00';
     document.getElementById('total-start-time-max').value = '08:00';
+
+    // 指定日期模式默认值
+    document.getElementById('dates-min-pace').value = 7.0;
+    document.getElementById('dates-max-pace').value = 8.0;
+    document.getElementById('dates-start-time-min').value = '06:00';
+    document.getElementById('dates-start-time-max').value = '08:00';
 }
 
 // 初始化表单提交
@@ -341,10 +548,12 @@ function initForms() {
     document.getElementById('daily-form').addEventListener('submit', handleDailySubmit);
     document.getElementById('total-form').addEventListener('submit', handleTotalSubmit);
     document.getElementById('single-form').addEventListener('submit', handleSingleSubmit);
+    document.getElementById('dates-form').addEventListener('submit', handleDatesSubmit);
     document.getElementById('download-btn').addEventListener('click', downloadFiles);
     document.getElementById('daily-export-btn').addEventListener('click', showExportModal);
     document.getElementById('total-export-btn').addEventListener('click', showExportModal);
     document.getElementById('single-export-btn').addEventListener('click', showExportModal);
+    document.getElementById('dates-export-btn').addEventListener('click', showExportModal);
     document.getElementById('export-form').addEventListener('submit', handleExportSubmit);
     document.querySelector('#export-modal .modal-close').addEventListener('click', hideExportModal);
     document.querySelector('#export-modal .modal-cancel').addEventListener('click', hideExportModal);
@@ -409,6 +618,15 @@ function doExportTemplate(name) {
             apply_correction: data.apply_correction,
             enable_pace_fluctuation: data.enable_pace_fluctuation,
         };
+    } else if (activeMode === 'dates-mode') {
+        config = {
+            min_pace: data.min_pace,
+            max_pace: data.max_pace,
+            start_time_min: data.start_time_min,
+            start_time_max: data.start_time_max,
+            min_km: data.min_km,
+            max_km: data.max_km,
+        };
     } else {
         config = {
             pace: data.pace,
@@ -426,6 +644,7 @@ function doExportTemplate(name) {
         daily_config: activeMode === 'daily-mode' ? config : {},
         total_config: activeMode === 'total-mode' ? config : {},
         single_config: activeMode === 'single-mode' ? config : {},
+        dates_config: activeMode === 'dates-mode' ? config : {},
     };
 
     // 保存到本地缓存
@@ -453,6 +672,8 @@ function getCurrentActiveFormData() {
         return collectDailyFormData();
     } else if (activeMode === 'total-mode') {
         return collectTotalFormData();
+    } else if (activeMode === 'dates-mode') {
+        return collectDatesFormData();
     } else {
         return collectSingleFormData();
     }
@@ -477,6 +698,36 @@ async function handleSingleSubmit(e) {
     e.preventDefault();
     const data = collectSingleFormData();
     await generate('single', data);
+}
+
+// 处理指定日期模式提交
+async function handleDatesSubmit(e) {
+    e.preventDefault();
+    if (selectedDates.size === 0) {
+        showMessage('请至少选择一个日期', 'error');
+        return;
+    }
+    const data = collectDatesFormData();
+    await generate('dates', data);
+}
+
+// 收集指定日期表单数据
+function collectDatesFormData() {
+    const trackId = document.getElementById('track-select').value;
+    const templateId = document.getElementById('template-select').value;
+
+    return {
+        track_id: trackId,
+        template_id: templateId || undefined,
+        dates: Array.from(selectedDates).sort(),
+        min_km: parseFloat(document.getElementById('dates-min-km').value),
+        max_km: parseFloat(document.getElementById('dates-max-km').value),
+        min_pace: parseFloat(document.getElementById('dates-min-pace').value),
+        max_pace: parseFloat(document.getElementById('dates-max-pace').value),
+        start_time_min: document.getElementById('dates-start-time-min').value || '06:00',
+        start_time_max: document.getElementById('dates-start-time-max').value || '08:00',
+        output_dir: document.getElementById('dates-output-dir').value,
+    };
 }
 
 // 收集每日表单数据

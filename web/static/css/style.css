@@ -442,6 +442,205 @@ header .subtitle {
     }
 }
 
+/* 日历样式 */
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.calendar-nav #cal-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    min-width: 140px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+}
+
+.cal-clickable {
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.1s, color 0.1s;
+}
+
+.cal-clickable:hover {
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--primary-color);
+}
+
+.cal-nav-btn {
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid var(--border-color);
+    background: white;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+    color: var(--text-color);
+    padding: 0;
+}
+
+.cal-nav-btn.sm {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+}
+
+.cal-nav-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* 年/月选择面板 */
+.cal-picker {
+    background: white;
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 8px;
+}
+
+.cal-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.cal-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+}
+
+.cal-picker-grid .pick-item {
+    padding: 6px 0;
+    text-align: center;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+    border: none;
+    background: none;
+    color: var(--text-color);
+}
+
+.cal-picker-grid .pick-item:hover {
+    background: rgba(37, 99, 235, 0.08);
+}
+
+.cal-picker-grid .pick-item.active {
+    background: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+
+/* 日历主体 */
+.calendar-container {
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--background-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.calendar-weekdays span {
+    padding: 5px 0;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.78rem;
+    border: 1px solid transparent;
+    transition: background 0.06s, color 0.06s, border-color 0.06s;
+    user-select: none;
+    position: relative;
+    border-radius: 4px;
+    margin: 1px;
+}
+
+.calendar-day:hover:not(.empty) {
+    background: rgba(37, 99, 235, 0.08);
+}
+
+.calendar-day.empty {
+    cursor: default;
+}
+
+.calendar-day.today {
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.calendar-day.today::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 3px;
+    background: var(--primary-color);
+    border-radius: 50%;
+}
+
+.calendar-day.selected {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    font-weight: 600;
+}
+
+.calendar-day.selected.today::after {
+    background: white;
+}
+
+.selected-dates-display {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--background-color);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.selected-dates-display span {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
 /* 动画效果 */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }

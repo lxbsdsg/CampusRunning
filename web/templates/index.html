@@ -42,6 +42,7 @@
                 <button class="tab-button active" data-mode="daily">每日公里数范围</button>
                 <button class="tab-button" data-mode="total">总公里数生成</button>
                 <button class="tab-button" data-mode="single">单个文件</button>
+                <button class="tab-button" data-mode="dates">指定日期生成</button>
             </div>
         </div>
 
@@ -184,6 +185,78 @@
                                 <div class="btn-group">
                     <button type="submit" class="btn btn-primary">开始生成</button>
                     <button type="button" id="single-export-btn" class="btn btn-secondary">导出模板</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 指定日期模式 -->
+        <div id="dates-mode" class="card mode-content">
+            <h3>指定日期生成</h3>
+            <form id="dates-form">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>选择日期（点击日期变蓝即选中，再次点击取消）</label>
+                        <div class="calendar-nav">
+                            <button type="button" id="cal-prev" class="cal-nav-btn">&lt;</button>
+                            <span id="cal-title">
+                                <span id="cal-year" class="cal-clickable"></span>
+                                <span id="cal-month" class="cal-clickable"></span>
+                            </span>
+                            <button type="button" id="cal-next" class="cal-nav-btn">&gt;</button>
+                        </div>
+                        <!-- 年份选择面板 -->
+                        <div id="year-picker" class="cal-picker" style="display:none">
+                            <div class="cal-picker-header">
+                                <button type="button" id="yp-prev" class="cal-nav-btn sm">&lt;</button>
+                                <span id="yp-range"></span>
+                                <button type="button" id="yp-next" class="cal-nav-btn sm">&gt;</button>
+                            </div>
+                            <div id="yp-grid" class="cal-picker-grid"></div>
+                        </div>
+                        <!-- 月份选择面板 -->
+                        <div id="month-picker" class="cal-picker" style="display:none"></div>
+                        <div class="calendar-container">
+                            <div class="calendar-weekdays">
+                                <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+                            </div>
+                            <div id="calendar-grid" class="calendar-grid"></div>
+                        </div>
+                        <div id="selected-dates-display" class="selected-dates-display">
+                            已选日期：<span id="selected-dates-text">无</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>最低公里数</label>
+                        <input type="number" id="dates-min-km" step="0.1" min="0.1" value="2.0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>最高公里数</label>
+                        <input type="number" id="dates-max-km" step="0.1" min="0.1" value="5.0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>最快配速 (min/km)</label>
+                        <input type="number" id="dates-min-pace" step="0.1" min="1" value="7.0">
+                    </div>
+                    <div class="form-group">
+                        <label>最慢配速 (min/km)</label>
+                        <input type="number" id="dates-max-pace" step="0.1" min="1" value="8.0">
+                    </div>
+                    <div class="form-group">
+                        <label>最早开始时间</label>
+                        <input type="time" id="dates-start-time-min" value="06:00">
+                    </div>
+                    <div class="form-group">
+                        <label>最晚开始时间</label>
+                        <input type="time" id="dates-start-time-max" value="08:00">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>输出目录</label>
+                        <input type="text" id="dates-output-dir" value="output">
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">开始生成</button>
+                    <button type="button" id="dates-export-btn" class="btn btn-secondary">导出模板</button>
                 </div>
             </form>
         </div>
